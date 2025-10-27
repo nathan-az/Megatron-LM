@@ -176,27 +176,6 @@ class YarnRotaryEmbedding(RotaryEmbedding):
             offset,
             packed_seq,
         )
-        inv_freq_mask = 1.0 - _yarn_linear_ramp_mask(low, high, self.dim // 2).to(
-            device=self.inv_freq_extra.device, dtype=torch.float32
-        )
-        inv_freq = self.inv_freq_inter * (1 - inv_freq_mask) + self.inv_freq_extra * inv_freq_mask
-
-        seq = (
-            torch.arange(
-                max_seq_len, device=self.inv_freq_extra.device, dtype=self.inv_freq_extra.dtype
-            )
-            + offset
-        )
-
-        freqs = torch.outer(seq, inv_freq)
-
-        _mscale = _yarn_get_concentration_factor(
-            self.scaling_factor, self.mscale, self.mscale_all_dim
-        )
-
-        emb = torch.cat((freqs, freqs), dim=-1)
-        # emb [seq_length, .., dim]
-        emb = emb[:, None, None, :]
         if self.cp_group is not None and self.cp_group.size() > 1 and not packed_seq:
             # slice rotary_pos_emb along sequence dimension
             # and select the parition of the current CP rank
